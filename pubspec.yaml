@@ -29,6 +29,7 @@ environment:
 # versions available, run `flutter pub outdated`.
 dependencies:
   geolocator: ^14.0.2
+  shared_preferences: ^2.3.2
   flutter:
     sdk: flutter
 
