@@ -1,0 +1,1 @@
+export 'banco_local.dart';
