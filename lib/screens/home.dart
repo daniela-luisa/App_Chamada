@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/chamada_model.dart';
+import '../services/chamadasService.dart';
+import '../widgets/chamada_card.dart';
+import '../widgets/bottom_nav.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -10,72 +14,144 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   String? _usuario;
-  String? _curso;
+  List<ChamadaModel> chamadas = [];
+  bool cicloFinalizado = false;
+  final service = ChamadaService();
+
+  final horariosFixos = [
+    "19:45 - 19:50",
+    "20:35 - 20:40",
+    "21:25 - 21:30",
+    "22:15 - 22:20"
+  ];
 
   @override
   void initState() {
     super.initState();
-    _carregarDadosUsuario();
+    _carregar();
   }
 
-  /// Carrega o nome e o curso salvos no dispositivo
-  Future<void> _carregarDadosUsuario() async {
+  Future<void> _carregar() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _usuario = prefs.getString('usuario');
-      _curso = prefs.getString('curso');
-    });
-  }
+    _usuario = prefs.getString('usuario');
+    chamadas = await service.carregarChamadas();
 
-  /// Limpa o login e volta pra tela de identificação
-  Future<void> _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, '/identificacao');
+    if (chamadas.any((c) => c.status == "A Iniciar")) {
+      service.iniciarChamadas(chamadas, (i, status, presenca, {presence}) {
+        setState(() {
+          chamadas[i].status = status;
+          chamadas[i].presencaTxt = presenca;
+          if (presence != null) chamadas[i].presence = presence;
+        });
+      }).then((_) => setState(() => cicloFinalizado = true));
+    } else {
+      setState(() => cicloFinalizado = true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final dataHoje = DateTime.now();
+    final dataFormatada =
+        "${dataHoje.day.toString().padLeft(2, '0')}/${dataHoje.month.toString().padLeft(2, '0')}/${dataHoje.year}";
+
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Página Inicial'),
-        centerTitle: true,
-        backgroundColor: Colors.blueAccent,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sair',
-            onPressed: _logout,
-          )
-        ],
-      ),
-      body: Center(
-        child: _usuario == null
-            ? const CircularProgressIndicator()
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: SafeArea(
+        child: Column(
+          children: [
+            //TOPO AZUL 
+            Container(
+              color: const Color(0xFF4C5BFF),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Bem-vindo, $_usuario!',
+                    _usuario ?? 'Carregando...',
                     style: const TextStyle(
-                      fontSize: 26,
+                      color: Colors.white,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Chamada',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        'Automática',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            //Cabeçalho “Chamadas” + Data
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Chamadas',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
                   Text(
-                    'Curso: $_curso',
+                    dataFormatada,
                     style: const TextStyle(
-                      fontSize: 20,
+                      fontSize: 16,
                       color: Colors.black54,
                     ),
                   ),
                 ],
               ),
+            ),
+
+            //Lista de chamadas
+            Expanded(
+              child: ListView.builder(
+                itemCount: chamadas.length,
+                padding: const EdgeInsets.all(16),
+                itemBuilder: (context, index) => ChamadaCard(
+                      chamada: chamadas[index],
+                       horario: horariosFixos[index],
+                      index: index, 
+                    ),
+
+              ),
+            ),
+
+            // 🔹 Mensagem final
+            if (cicloFinalizado)
+              const Padding(
+                padding: EdgeInsets.all(12),
+                child: Text('Chamadas concluídas e salvas com sucesso!',
+                  style: TextStyle(color: Colors.green, fontSize: 16),
+                ),
+              ),
+          ],
+        ),
       ),
+
+      // 🔹 Rodapé com botões
+      bottomNavigationBar: BottomNav(context),
     );
   }
 }

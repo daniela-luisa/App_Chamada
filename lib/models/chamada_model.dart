@@ -6,12 +6,17 @@ class ChamadaModel {
   final double longitude;
   bool _presence;
 
+  String status;
+  String presencaTxt; 
+
   ChamadaModel({
     required this.id,
     required this.dateTime,
     required this.course,
     required this.latitude,
     required this.longitude,
+    this.status = "A Iniciar",
+    this.presencaTxt = "Aguardando",
     bool presence = false,
   }) : _presence = presence; //atributo privado, incializado e depois "setado" 
 
