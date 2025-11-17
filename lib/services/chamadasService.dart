@@ -10,8 +10,15 @@ class ChamadaService {
   Future<List<ChamadaModel>> carregarChamadas() async {
     final prefs = await SharedPreferences.getInstance();
     final dadosSalvos = prefs.getString('chamadas_dia');
+    final dataSalva = prefs.getString('data_chamadas');
 
-    if (dadosSalvos != null) {
+    // Data "de hoje" apenas com ano-mês-dia
+    final hoje = DateTime.now();
+    final hojeStr =
+        "${hoje.year.toString().padLeft(4, '0')}-${hoje.month.toString().padLeft(2, '0')}-${hoje.day.toString().padLeft(2, '0')}";
+
+    // 🔹 Se temos dados salvos E a data é de hoje → reaproveita as chamadas
+    if (dadosSalvos != null && dataSalva == hojeStr) {
       final List<dynamic> json = jsonDecode(dadosSalvos);
       return json
           .map((m) => ChamadaModel(
@@ -25,10 +32,25 @@ class ChamadaService {
                 presencaTxt: m['presente'] ? "Presente" : "Falta",
               ))
           .toList();
-    } else {
-      return BancoLocal.getMockCall();
     }
+
+    // 🔹 Se NÃO temos dados ou a data é diferente → é um novo dia
+    // limpa o que tinha e gera novas chamadas
+    await prefs.remove('chamadas_dia');
+    await prefs.remove('data_chamadas');
+
+    final chamadas = BancoLocal.getMockCall();
+
+    // Garante estado inicial para o novo dia
+    for (var c in chamadas) {
+      c.status = "A Iniciar";
+      c.presence = false;
+      c.presencaTxt = "";
+    }
+
+    return chamadas;
   }
+
 
   Future<void> iniciarChamadas(
       List<ChamadaModel> chamadas, Function atualizarUI) async {
@@ -50,11 +72,12 @@ class ChamadaService {
 
   Future<void> salvarResultados(List<ChamadaModel> chamadas) async {
     final prefs = await SharedPreferences.getInstance();
+
     final lista = chamadas
         .map((c) => {
               'id': c.id,
-              //'data': c.dateTime.toIso8601String(),
-              'data': DateTime.now().toIso8601String(),
+              // Mantém a data da chamada (agendada) em vez de sobrescrever com o "agora"
+              'data': c.dateTime.toIso8601String(),
               'curso': c.course,
               'latitude': c.latitude,
               'longitude': c.longitude,
@@ -62,10 +85,17 @@ class ChamadaService {
             })
         .toList();
 
-        print(jsonEncode(lista));
+    // Data de referência do ciclo (apenas ano-mês-dia)
+    final hoje = DateTime.now();
+    final hojeStr =
+        "${hoje.year.toString().padLeft(4, '0')}-${hoje.month.toString().padLeft(2, '0')}-${hoje.day.toString().padLeft(2, '0')}";
+
+    print(jsonEncode(lista));
 
     await prefs.setString('chamadas_dia', jsonEncode(lista));
+    await prefs.setString('data_chamadas', hojeStr);
   }
+
 
 
 
