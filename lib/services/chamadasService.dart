@@ -53,7 +53,8 @@ class ChamadaService {
     final lista = chamadas
         .map((c) => {
               'id': c.id,
-              'data': c.dateTime.toIso8601String(),
+              //'data': c.dateTime.toIso8601String(),
+              'data': DateTime.now().toIso8601String(),
               'curso': c.course,
               'latitude': c.latitude,
               'longitude': c.longitude,
@@ -61,8 +62,12 @@ class ChamadaService {
             })
         .toList();
 
+        print(jsonEncode(lista));
+
     await prefs.setString('chamadas_dia', jsonEncode(lista));
   }
+
+
 
   Future<bool> verificarPresenca(Position posicao) async {
     const double LAT_AULA = 37.4219983;

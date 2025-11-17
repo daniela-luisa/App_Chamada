@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/chamada_model.dart';
+import '../../models/chamada_model.dart';
 
 class ChamadaCard extends StatelessWidget {
   final ChamadaModel chamada;
