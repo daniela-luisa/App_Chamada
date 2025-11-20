@@ -36,7 +36,7 @@ class ChamadaCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 187, 203, 255),
+        color: const Color(0xFFDCE2FF),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(

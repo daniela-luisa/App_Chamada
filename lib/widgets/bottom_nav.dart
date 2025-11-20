@@ -6,16 +6,19 @@ class BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFF4C5BFF),
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _botao(Icons.home, "Início", '/home'),
-          _botao(Icons.history, "Histórico", '/historico'),
-          _botao(Icons.download, "CSV", '/csv'),
-        ],
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        color: const Color(0xFF4C5BFF),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _botao(Icons.home, "Início", '/home'),
+            _botao(Icons.history, "Histórico", '/historico'),
+            _botao(Icons.download, "CSV", '/csv'),
+          ],
+        ),
       ),
     );
   }
@@ -27,8 +30,10 @@ class BottomNav extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: Colors.white, size: 28),
-          Text(label,
-              style: const TextStyle(color: Colors.white, fontSize: 14)),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+          ),
         ],
       ),
     );
