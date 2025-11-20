@@ -1,6 +1,6 @@
 class ChamadaModel {
   final int id; 
-  final DateTime dateTime;
+  DateTime dateTime;
   final String course;
   double latitude;
   double longitude;

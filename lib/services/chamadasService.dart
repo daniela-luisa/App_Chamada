@@ -53,7 +53,9 @@ class ChamadaService {
 
 
 Future<void> iniciarChamadas(
-    List<ChamadaModel> chamadas, Function atualizarUI) async {
+  List<ChamadaModel> chamadas,
+  Function atualizarUI,
+) async {
   for (int i = 0; i < chamadas.length; i++) {
     atualizarUI(i, "Em Andamento", "Detectando Localização");
 
@@ -62,14 +64,22 @@ Future<void> iniciarChamadas(
     // 🔹 Pega localização real do celular
     final posicao = await LocationService.instance.getCurrentLocation();
 
-    // 🔹 Salva essa localização na chamada atual
+    // 🔹 Salva localização na chamada atual
     chamadas[i].latitude = posicao.latitude;
     chamadas[i].longitude = posicao.longitude;
+
+    // 🔹 Atualiza a data/hora da chamada para o momento atual
+    chamadas[i].dateTime = DateTime.now();
 
     // 🔹 Usa a mesma posição pra verificar presença
     final presente = await verificarPresenca(posicao);
 
-    atualizarUI( i, "Encerrada", presente ? "Presente" : "Falta", presence: presente,);
+    atualizarUI(
+      i,
+      "Encerrada",
+      presente ? "Presente" : "Falta",
+      presence: presente,
+    );
 
     await Future.delayed(const Duration(seconds: 5));
   }
@@ -78,33 +88,69 @@ Future<void> iniciarChamadas(
 }
 
 
-  Future<void> salvarResultados(List<ChamadaModel> chamadas) async {
-    final prefs = await SharedPreferences.getInstance();
 
-    final lista = chamadas
-        .map((c) => {
-              'id': c.id,
-              // Mantém a data da chamada (agendada) em vez de sobrescrever com o "agora"
-              'data': c.dateTime.toIso8601String(),
-              'curso': c.course,
-              'latitude': c.latitude,
-              'longitude': c.longitude,
-              'presente': c.presence,
-            })
-        .toList();
+Future<void> salvarResultados(List<ChamadaModel> chamadas) async {
+  final prefs = await SharedPreferences.getInstance();
 
-    // Data de referência do ciclo (apenas ano-mês-dia)
-    final hoje = DateTime.now();
-    final hojeStr =
-        "${hoje.year.toString().padLeft(4, '0')}-${hoje.month.toString().padLeft(2, '0')}-${hoje.day.toString().padLeft(2, '0')}";
+  final lista = chamadas
+      .map((c) => {
+            'id': c.id,
+            'data': c.dateTime.toIso8601String(),
+            'curso': c.course,
+            'latitude': c.latitude,
+            'longitude': c.longitude,
+            'presente': c.presence,
+          })
+      .toList();
 
-    print(jsonEncode(lista));
+  // Data de referência do ciclo (apenas ano-mês-dia)
+  final hoje = DateTime.now();
+  final hojeStr =
+      "${hoje.year.toString().padLeft(4, '0')}-${hoje.month.toString().padLeft(2, '0')}-${hoje.day.toString().padLeft(2, '0')}";
 
-    await prefs.setString('chamadas_dia', jsonEncode(lista));
-    await prefs.setString('data_chamadas', hojeStr);
-  }
+  print(jsonEncode(lista));
 
+  // 🔹 Continua salvando o "dia atual" pra tela Home
+  await prefs.setString('chamadas_dia', jsonEncode(lista));
+  await prefs.setString('data_chamadas', hojeStr);
 
+  // 🔹 Novo: acumula tudo em um histórico geral
+  final historicoStr = prefs.getString('historico_chamadas');
+  List<dynamic> historico =
+      historicoStr != null ? jsonDecode(historicoStr) : [];
+
+  // adiciona as chamadas de hoje ao histórico
+  historico.addAll(lista);
+
+  await prefs.setString('historico_chamadas', jsonEncode(historico));
+}
+
+Future<List<ChamadaModel>> carregarHistoricoChamadas() async {
+  final prefs = await SharedPreferences.getInstance();
+  final dados = prefs.getString('historico_chamadas');
+
+  if (dados == null) return [];
+
+  final List<dynamic> jsonList = jsonDecode(dados);
+
+  final chamadas = jsonList
+      .map((m) => ChamadaModel(
+            id: m['id'],
+            dateTime: DateTime.parse(m['data']),
+            course: m['curso'],
+            latitude: (m['latitude'] as num).toDouble(),
+            longitude: (m['longitude'] as num).toDouble(),
+            presence: m['presente'],
+            status: "Encerrada",
+            presencaTxt: m['presente'] ? "Presente" : "Falta",
+          ))
+      .toList();
+
+  // 🔹 Ordena do mais recente pro mais antigo (opcional mas fica bonito)
+  chamadas.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+
+  return chamadas;
+}
 
 
   Future<bool> verificarPresenca(Position posicao) async {

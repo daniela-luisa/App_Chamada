@@ -21,24 +21,18 @@ class _HistoricoPageState extends State<HistoricoPage> {
     _carregarChamadas();
   }
 
-  Future<void> _carregarChamadas() async {
-    final service = ChamadaService();
-    final lista = await service.carregarChamadas();
-    final prefs = await SharedPreferences.getInstance();
-    _usuario = prefs.getString('usuario');
+Future<void> _carregarChamadas() async {
+  final service = ChamadaService();
+  final lista = await service.carregarHistoricoChamadas();
 
-    final hoje = DateTime.now();
+  final prefs = await SharedPreferences.getInstance();
+  _usuario = prefs.getString('usuario');
 
-    final chamadasHoje = lista.where((c) {
-      return c.dateTime.year == hoje.year &&
-             c.dateTime.month == hoje.month &&
-             c.dateTime.day == hoje.day;
-    }).toList();
+  setState(() {
+    chamadas = lista;
+  });
+}
 
-    setState(() {
-      chamadas = chamadasHoje;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,7 +85,7 @@ class _HistoricoPageState extends State<HistoricoPage> {
               child: chamadas.isEmpty
                   ? const Center(
                       child: Text(
-                        'Nenhum registro encontrado para hoje.',
+                        'Nenhum registro encontrado no histórico.',
                         style: TextStyle(fontSize: 16),
                       ),
                     )
