@@ -24,18 +24,26 @@ class BottomNav extends StatelessWidget {
   }
 
   Widget _botao(IconData icon, String label, String route) {
-    return InkWell(
-      onTap: () => Navigator.pushNamed(context, route),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.white, size: 28),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-          ),
-        ],
-      ),
-    );
-  }
+  return InkWell(
+    onTap: () {
+      if (route == '/home') {
+        // Volta até a rota /home que já existe
+        Navigator.popUntil(context, ModalRoute.withName('/home'));
+      } else {
+        // Vai pra outra tela empilhando (histórico, csv etc.)
+        Navigator.pushNamed(context, route);
+      }
+    },
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: Colors.white, size: 28),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white, fontSize: 14),
+        ),
+      ],
+    ),
+  );
+}
 }
