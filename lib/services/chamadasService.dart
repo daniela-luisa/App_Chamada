@@ -110,20 +110,34 @@ Future<void> salvarResultados(List<ChamadaModel> chamadas) async {
 
   print(jsonEncode(lista));
 
-  // 🔹 Continua salvando o "dia atual" pra tela Home
+  // Ainda salva o "dia atual" pra tela Home (sempre o último ciclo)
   await prefs.setString('chamadas_dia', jsonEncode(lista));
   await prefs.setString('data_chamadas', hojeStr);
 
-  // 🔹 Novo: acumula tudo em um histórico geral
+  // Carrega histórico acumulado
   final historicoStr = prefs.getString('historico_chamadas');
   List<dynamic> historico =
       historicoStr != null ? jsonDecode(historicoStr) : [];
 
-  // adiciona as chamadas de hoje ao histórico
+  // Verifica se esse dia já existe no histórico
+  final jaTemDia = historico.any((m) {
+    final data = DateTime.parse(m['data'] as String);
+    return data.year == hoje.year &&
+        data.month == hoje.month &&
+        data.day == hoje.day;
+  });
+
+  //  Se já tem chamadas desse dia no histórico, nao adiciona de novo (mantém as primeiras)
+  if (jaTemDia) {
+    return;
+  }
+
+  // Se ainda não tem, adiciona esse conjunto de chamadas
   historico.addAll(lista);
 
   await prefs.setString('historico_chamadas', jsonEncode(historico));
 }
+
 
 Future<List<ChamadaModel>> carregarHistoricoChamadas() async {
   final prefs = await SharedPreferences.getInstance();
