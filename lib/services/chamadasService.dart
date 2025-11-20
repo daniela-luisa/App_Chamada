@@ -57,31 +57,53 @@ Future<void> iniciarChamadas(
   Function atualizarUI,
 ) async {
   for (int i = 0; i < chamadas.length; i++) {
-    atualizarUI(i, "Em Andamento", "Detectando Localização");
-
+    await Future.delayed(const Duration(seconds: 2));
+    // Começa a rodada
+    atualizarUI(i,"Em Andamento","Detectando localização...", presence: chamadas[i].presence,);
     await Future.delayed(const Duration(seconds: 2));
 
-    // 🔹 Pega localização real do celular
-    final posicao = await LocationService.instance.getCurrentLocation();
+    // Localização inicial
+    final posicaoInicial = await LocationService.instance.getCurrentLocation();
 
-    // 🔹 Salva localização na chamada atual
-    chamadas[i].latitude = posicao.latitude;
-    chamadas[i].longitude = posicao.longitude;
-
-    // 🔹 Atualiza a data/hora da chamada para o momento atual
+    // Salva localização e horário na chamada
+    chamadas[i].latitude = posicaoInicial.latitude;
+    chamadas[i].longitude = posicaoInicial.longitude;
     chamadas[i].dateTime = DateTime.now();
 
-    // 🔹 Usa a mesma posição pra verificar presença
-    final presente = await verificarPresenca(posicao);
+    final presente = await verificarPresenca(posicaoInicial);
 
-    atualizarUI(
-      i,
-      "Encerrada",
-      presente ? "Presente" : "Falta",
-      presence: presente,
-    );
+    if (presente) { atualizarUI(i,"Em Andamento","Presente", presence: true,);
 
-    await Future.delayed(const Duration(seconds: 5));
+      // Simula a janela de tempo (tipo 5 minutos -> aqui 5 segundos)
+      await Future.delayed(const Duration(seconds: 5));
+
+      // Só agora encerra a rodada
+      atualizarUI(i,"Encerrada", "Presente", presence: true,);
+      await Future.delayed(const Duration(seconds: 2));
+    } else {
+      atualizarUI( i,"Em Andamento","Fora da área, aguardando...", presence: false,);
+
+      // Espera a janela toda
+      await Future.delayed(const Duration(seconds: 5));
+
+      // Verifica de novo no final da chamada
+      final posicaoFinal =
+          await LocationService.instance.getCurrentLocation();
+      chamadas[i].latitude = posicaoFinal.latitude;
+      chamadas[i].longitude = posicaoFinal.longitude;
+
+      final presenteDepois = await verificarPresenca(posicaoFinal);
+
+      if (presenteDepois) {
+        // Entrou na área a tempo
+        atualizarUI(i,"Encerrada","Presente (entrou a tempo)",presence: true,);
+      } else {
+        // Confirmou falta só no final
+        atualizarUI(i,"Encerrada","Falta", presence: false,);
+      await Future.delayed(const Duration(seconds: 2));
+
+      }
+    }
   }
 
   await salvarResultados(chamadas);
@@ -168,8 +190,8 @@ Future<List<ChamadaModel>> carregarHistoricoChamadas() async {
 
 
   Future<bool> verificarPresenca(Position posicao) async {
-    const double LAT_AULA = -26.33189;
-    const double LNG_AULA = -48.79700;
+    const double LAT_AULA = 37.4219983;
+    const double LNG_AULA = -122.084;
     const double DISTANCIA_MAX = 100;
 
     final distancia = Geolocator.distanceBetween(
