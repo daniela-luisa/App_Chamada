@@ -52,23 +52,31 @@ class ChamadaService {
   }
 
 
-  Future<void> iniciarChamadas(
-      List<ChamadaModel> chamadas, Function atualizarUI) async {
-    for (int i = 0; i < chamadas.length; i++) {
-      atualizarUI(i, "Em Andamento", "Detectando Localização");
+Future<void> iniciarChamadas(
+    List<ChamadaModel> chamadas, Function atualizarUI) async {
+  for (int i = 0; i < chamadas.length; i++) {
+    atualizarUI(i, "Em Andamento", "Detectando Localização");
 
-      await Future.delayed(const Duration(seconds: 2));
-      final posicao = await LocationService.instance.getCurrentLocation();
-      final presente = await verificarPresenca(posicao);
+    await Future.delayed(const Duration(seconds: 2));
 
-      atualizarUI(i, "Encerrada", presente ? "Presente" : "Falta",
-          presence: presente);
+    // 🔹 Pega localização real do celular
+    final posicao = await LocationService.instance.getCurrentLocation();
 
-      await Future.delayed(const Duration(seconds: 5));
-    }
+    // 🔹 Salva essa localização na chamada atual
+    chamadas[i].latitude = posicao.latitude;
+    chamadas[i].longitude = posicao.longitude;
 
-    await salvarResultados(chamadas);
+    // 🔹 Usa a mesma posição pra verificar presença
+    final presente = await verificarPresenca(posicao);
+
+    atualizarUI( i, "Encerrada", presente ? "Presente" : "Falta", presence: presente,);
+
+    await Future.delayed(const Duration(seconds: 5));
   }
+
+  await salvarResultados(chamadas);
+}
+
 
   Future<void> salvarResultados(List<ChamadaModel> chamadas) async {
     final prefs = await SharedPreferences.getInstance();

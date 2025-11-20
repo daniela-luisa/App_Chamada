@@ -2,8 +2,8 @@ class ChamadaModel {
   final int id; 
   final DateTime dateTime;
   final String course;
-  final double latitude;
-  final double longitude;
+  double latitude;
+  double longitude;
   bool _presence;
 
   String status;
