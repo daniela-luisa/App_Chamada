@@ -190,9 +190,9 @@ Future<List<ChamadaModel>> carregarHistoricoChamadas() async {
 
 
   Future<bool> verificarPresenca(Position posicao) async {
-    const double LAT_AULA = 37.4219983;
-    const double LNG_AULA = -122.084;
-    const double DISTANCIA_MAX = 100;
+    const double LAT_AULA = -26.30490;
+    const double LNG_AULA = -48.84961;
+    const double DISTANCIA_MAX = 15;
 
     final distancia = Geolocator.distanceBetween(
       LAT_AULA,
