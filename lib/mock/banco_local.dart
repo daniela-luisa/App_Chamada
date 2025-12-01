@@ -5,7 +5,8 @@ class BancoLocal{
 
     static List<Student> getMockStudents(){
         return[
-        Student(id: 1, username: 'Leonardo', password: '123', course:  'Engenharia de Software')
+        Student(id: 1, username: 'Leonardo', password: '123', course:  'Engenharia de Software'),
+        Student(id: 2, username: 'Daniela', password: '456', course:  'Engenharia de Software')
         ];
     }
 

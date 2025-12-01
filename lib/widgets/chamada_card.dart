@@ -4,14 +4,23 @@ import '../../models/chamada_model.dart';
 class ChamadaCard extends StatelessWidget {
   final ChamadaModel chamada;
   final String horario;
-   final int index;
+  final int index;
 
-  const ChamadaCard({super.key, required this.chamada, required this.horario, required this.index,});
+  const ChamadaCard({
+    super.key,
+    required this.chamada,
+    required this.horario,
+    required this.index,
+  });
 
   String _statusPresenca() {
+    if (chamada.presencaTxt.isNotEmpty) {
+      return chamada.presencaTxt;
+    }
     if (chamada.status == "A Iniciar") return "Aguardando";
-    if (chamada.status == "Em Andamento" && !chamada.presence) {
-      return "Detectando Localização";
+
+    if (chamada.status == "Em Andamento") {
+      return "Detectando localização...";
     }
     if (chamada.status == "Encerrada") {
       return chamada.presence ? "Presente" : "Falta";
@@ -24,7 +33,7 @@ class ChamadaCard extends StatelessWidget {
       case "Em Andamento":
         return Colors.orange;
       case "Encerrada":
-        return Colors.green;
+        return  Colors.red;
       default:
         return Colors.grey;
     }
@@ -32,11 +41,12 @@ class ChamadaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textoPresenca = _statusPresenca();
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 187, 203, 255),
+        color: const Color(0xFFDCE2FF),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -53,12 +63,13 @@ class ChamadaCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('${index + 1}ª Chamada',
-             style: const TextStyle(
-             fontSize: 20,
-             fontWeight: FontWeight.w600,
-            ),
-          ),
+              Text(
+                '${index + 1}ª Chamada',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               Text(
                 chamada.status,
                 style: TextStyle(
@@ -70,17 +81,21 @@ class ChamadaCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            _statusPresenca(),
-            style: TextStyle(
-              color: chamada.presence
-                  ? Colors.green
-                  : (chamada.status == "Encerrada"
-                      ? Colors.red
-                      : Colors.black54),
-              fontSize: 16,
+
+          // Texto de presença / localização
+          if (textoPresenca.isNotEmpty)
+            Text(
+              textoPresenca,
+              style: TextStyle(
+                color: chamada.presence
+                    ? Colors.green
+                    : (chamada.status == "Encerrada"
+                        ? Colors.red
+                        : Colors.black54),
+                fontSize: 16,
+              ),
             ),
-          ),
+
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.bottomRight,

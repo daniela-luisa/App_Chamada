@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/chamada_model.dart';
 import '../services/chamadasService.dart';
 import '../widgets/bottom_nav.dart';
+import '../widgets/header_chamada.dart';
 
 class HistoricoPage extends StatefulWidget {
   const HistoricoPage({super.key});
@@ -23,134 +24,126 @@ class _HistoricoPageState extends State<HistoricoPage> {
 
   Future<void> _carregarChamadas() async {
     final service = ChamadaService();
-    final lista = await service.carregarChamadas();
+    final lista = await service.carregarHistoricoChamadas(); // usa o histórico geral
+
     final prefs = await SharedPreferences.getInstance();
     _usuario = prefs.getString('usuario');
 
-    final hoje = DateTime.now();
-
-    final chamadasHoje = lista.where((c) {
-      return c.dateTime.year == hoje.year &&
-             c.dateTime.month == hoje.month &&
-             c.dateTime.day == hoje.day;
-    }).toList();
-
     setState(() {
-      chamadas = chamadasHoje;
+      chamadas = lista;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            
-            Container(
-              color: const Color(0xFF4C5BFF),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _usuario ?? 'Carregando...',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Chamada',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        'Automática',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+    // Agrupa as chamadas por dia (yyyy-mm-dd)
+    final Map<String, List<ChamadaModel>> agrupadoPorDia = {};
+    for (var c in chamadas) {
+      final key ="${c.dateTime.year.toString().padLeft(4, '0')}-${c.dateTime.month.toString().padLeft(2, '0')}-${c.dateTime.day.toString().padLeft(2, '0')}";
+      agrupadoPorDia.putIfAbsent(key, () => []).add(c);
+    }
 
+    // Transforma em lista e ordena do dia mais recente pro mais antigo
+    final diasOrdenados = agrupadoPorDia.entries.toList()
+      ..sort((a, b) => b.value.first.dateTime.compareTo(a.value.first.dateTime));
+
+    return Scaffold(
+  backgroundColor: Colors.white,
+  body: SafeArea(
+    child: Column(
+      children: [
+        // TOPO AZUL (agora como widget)
+        HeaderChamada(usuario: _usuario),
+
+        // Título / Mensagem
             Padding(
               padding: const EdgeInsets.all(12.0),
-              child: chamadas.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'Nenhum registro encontrado para hoje.',
-                        style: TextStyle(fontSize: 16),
+              child: chamadas.isEmpty ? const Center(
+                      child: Text('Nenhum registro encontrado no histórico.', style: TextStyle(fontSize: 16),
                       ),
                     )
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        SizedBox(height: 10),
-                        Text(
-                          "Histórico de Presenças",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
+                  : const Align(
+                      alignment: Alignment.center,
+                      child: Text("Histórico de Presenças", style: TextStyle( fontSize: 20, fontWeight: FontWeight.bold,
                         ),
-                        SizedBox(height: 8),
-                      ],
+                      ),
                     ),
             ),
 
             if (chamadas.isNotEmpty)
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.all(10),
-                  itemCount: chamadas.length,
-                  itemBuilder: (context, i) {
-                    final c = chamadas[i];
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  itemCount: diasOrdenados.length,
+                  itemBuilder: (context, index) {
+                    final entry = diasOrdenados[index];
+                    final chamadasDoDia = entry.value;
+
+                    // Pega curso e data do primeiro registro desse dia
+                    final primeira = chamadasDoDia.first;
+                    final data = primeira.dateTime;
+                    final curso = primeira.course;
+
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: const Color(0xFFDCE2FF),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: ExpansionTile(
+                        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                        title: Text("Curso: $curso", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold) ),
+                        subtitle: Text("Data: ${_formatarData(data)}", style: const TextStyle(fontSize: 14) ),
                         children: [
-                          Text(
-                            "Curso: ${c.course}",
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                          const SizedBox(height: 4),
+                          for (int i = 0; i < chamadasDoDia.length; i++)
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 4.0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Esquerda: nº da chamada + localização
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text("${i + 1}ª Chamada", style: const TextStyle(fontWeight: FontWeight.w600)),
+                                        const SizedBox(height: 2),
+                                        Text("Localização: "
+                                          "${chamadasDoDia[i].latitude.toStringAsFixed(5)} | "
+                                          "${chamadasDoDia[i].longitude.toStringAsFixed(5)}",
+                                          style: const TextStyle(fontSize: 12)),
+                                      ],
+                                    ),
+                                  ),
+
+                                  // Direita: texto + ícone de presença
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(chamadasDoDia[i].presence ? "Presente" : "Falta",
+                                        style: TextStyle(
+                                          color: chamadasDoDia[i].presence
+                                              ? Colors.green
+                                              : Colors.red,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Icon(chamadasDoDia[i].presence ? Icons.check_circle : Icons.cancel,
+                                        color: chamadasDoDia[i].presence
+                                            ? Colors.green
+                                            : Colors.red,
+                                        size: 22,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          Text("Data: ${_formatarData(c.dateTime)}"),
-                          Text("Status: ${c.status}"),
-                          Text("Presença: ${c.presence ? "Presente" : "Falta"}"),
-                          Text(
-                            "Localização: "
-                            "${c.latitude.toStringAsFixed(5)} | "
-                            "${c.longitude.toStringAsFixed(5)}",
-                          ),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: Icon(
-                              c.presence ? Icons.check_circle : Icons.cancel,
-                              color: c.presence ? Colors.green : Colors.red,
-                              size: 26,
-                            ),
-                          ),
                         ],
                       ),
                     );
@@ -160,7 +153,6 @@ class _HistoricoPageState extends State<HistoricoPage> {
           ],
         ),
       ),
-
       bottomNavigationBar: BottomNav(context),
     );
   }
